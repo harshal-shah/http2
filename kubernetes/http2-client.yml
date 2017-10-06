@@ -1,0 +1,24 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: http2-client
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: trafficsim
+    spec:
+      containers:
+      - name: http2-client
+        image: harshals/http2-client:1.1
+        env:
+        - name: "HTTP2_SERVER"
+          value: "http2server"
+        - name: "HTTP2_PORT"
+          value: "8080"
+        - name: "HTTP2_GET_COUNT"
+          value: "15"
+        - name: "HTTP2_POST_COUNT"
+          value: "15"
+
