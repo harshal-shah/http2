@@ -4,5 +4,5 @@ if [[ "$1" == "rm" ]]; then
    docker rm $(docker ps -qa);
 fi
 
-docker run -d -p 8080:8080 --name http2_server harshals/http2-server:1.2
+docker run -d -p 8080:8080 --name http2server harshals/http2-server:1.3
 

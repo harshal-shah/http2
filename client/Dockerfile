@@ -1,11 +1,7 @@
 FROM ubuntu:16.04
-
-RUN apt-get update
-RUN apt-get install -y python3 python3-dev python3-pip build-essential libssl-dev libffi-dev
-
-WORKDIR /app
-ADD . /app
-
-RUN pip3 install -r requirements.txt
-
-CMD python3 http2_client.py
+WORKDIR /app/
+ADD . /app/
+RUN chmod 755 /app/install_curl.sh && /app/install_curl.sh
+ENV HTTP2_SERVER http2server
+ENV HTTP2_PORT 8080
+CMD sleep 10000
