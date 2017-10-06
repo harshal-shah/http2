@@ -1,37 +1,45 @@
 import json
+import subprocess
 import ssl
-from hyper import HTTP20Connection
+import os
+import logging
+import sys
+import time
 
-myssl = ssl.create_default_context();
-myssl.check_hostname=False
-myssl.verify_mode=ssl.CERT_NONE
+HTTP2_SERVER = os.environ['HTTP2_SERVER']
+HTTP2_PORT = os.environ['HTTP2_PORT']
+HTTP2_GET_COUNT = int(os.environ['HTTP2_GET_COUNT'])
+HTTP2_POST_COUNT = int(os.environ['HTTP2_POST_COUNT'])
 
-conn = HTTP20Connection('localhost', 8080, secure=True, ssl_context=myssl)
-conn.request('GET', '/')
-resp = conn.get_response()
+def _get_base_url():
+    return "https://" + HTTP2_SERVER + ':' + HTTP2_PORT + '/'
 
-# process initial page with book ids
-index_data = json.loads(resp.read().decode("utf8"))
 
-responses = []
-chunk_size = 100
+def _get_books():
+    with open('books.json', mode='r') as fh:
+        books = json.loads(fh.read())
+        return books
 
-# split initial set of urls into chunks of 100 items
-for i in range(0, len(index_data), chunk_size):
-    request_ids = []
 
-    # make requests
-    for _id in index_data[i:i+chunk_size]:
-        book_details_path = "/book?id={}".format(_id)
-        request_id = conn.request('GET', book_details_path)
-        print("Created request ID {}".format(request_id))
-        request_ids.append(request_id)
+def http2_get():
+    books = _get_books()
+    keylist = list(books.keys())
+    for n in range(1, HTTP2_GET_COUNT):
+        res = subprocess.run(["curl", "-k", "-X", "GET", "-s", "--http2", _get_base_url() + 'book?id={}'.format(keylist[n])], stdout=subprocess.PIPE)
+        logging.info("HTTP2 GET Req # {} : {}".format(n, res.stdout))
 
-    # get responses
-    for req_id in request_ids:
-        print("Sending req ID {} to fetch".format(req_id))
-        response = conn.get_response(req_id)
-        body = json.loads(response.read().decode("utf8"))
-        responses.append(body)
 
-assert len(responses) == 3000
+def http2_post():
+    books = _get_books()
+    keylist =list( books.keys())
+    for n in range(1, HTTP2_POST_COUNT):
+        res = subprocess.run(["curl", "-k", "-X", "POST", "-s", "--http2", "-d", str(books[keylist[n]]), _get_base_url() + 'book'], stdout=subprocess.PIPE)
+        logging.info("HTTP2 POST Req # {} : {}".format(n, books[keylist[n]]))
+
+
+if __name__ == "__main__":
+    while True:
+        logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.INFO, stream=sys.stdout)
+        http2_get()
+        http2_post()
+        time.sleep(30)
